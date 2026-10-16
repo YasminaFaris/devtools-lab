@@ -93,7 +93,7 @@ EOF
 
         stage('Push') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'HUB_USER', passwordVariable: 'HUB_TOKEN')]) {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'HUB_USER', passwordVariable: 'HUB_TOKEN')]) {
                     sshagent(credentials: ['devtools-ssh']) {
                         sh """
                             $SSH_DEVTOOLS "IMAGE=${IMAGE} HUB_USER=${HUB_USER} HUB_TOKEN=${HUB_TOKEN} bash -ex" << 'EOF'
@@ -112,7 +112,7 @@ EOF
 
         stage('Deploy') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'HUB_USER', passwordVariable: 'HUB_TOKEN')]) {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'HUB_USER', passwordVariable: 'HUB_TOKEN')]) {
                     sshagent(credentials: ['devtools-ssh']) {
                         sh """
                             $SSH_DEVTOOLS "IMAGE=${IMAGE} HUB_USER=${HUB_USER} HUB_TOKEN=${HUB_TOKEN} bash -ex" << 'EOF'
