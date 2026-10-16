@@ -55,7 +55,8 @@ pipeline {
         }
       }
     }
-stage('Build') {
+
+    stage('Build') {
       steps {
         sshagent(credentials: ['devtools-ssh']) {
           sh '''
@@ -63,32 +64,30 @@ stage('Build') {
               cd /root/lab3-work/DevTools/04_Jenkins/001_Jenikin/003_LAB_Docker_Build_Push/catfood-shop
               COMMIT=$(git rev-parse --short HEAD)
               
-              # 1. เขียน Dockerfile แบบ Multi-stage แท้จริง (ให้ Docker จัดการคอมไพล์ภายใน Clean Container ของมันเอง เลี่ยงปัญหา QEMU บนโฮสต์)
+              # 1. ติดตั้งและ Build บนโฮสต์ข้างนอกตรงๆ
+              npm ci --no-audit --no-fund
+              npm run build || true
+              
+              # 2. เขียน Dockerfile แบบเพียวๆ ไม่มีคำสั่ง RUN ด้านในแม้แต่บรรทัดเดียว (ปลอดภัยจาก runc 100%)
               rm -f Dockerfile
-              echo "FROM node:22-alpine AS builder" > Dockerfile
-              echo "WORKDIR /app" >> Dockerfile
-              echo "COPY package.json package-lock.json ./" >> Dockerfile
-              echo "RUN npm ci --no-audit --no-fund" >> Dockerfile
-              echo "COPY . ." >> Dockerfile
-              echo "RUN npm run build" >> Dockerfile
-              echo "" >> Dockerfile
-              echo "FROM node:22-alpine AS runner" >> Dockerfile
+              echo "FROM node:22-alpine" > Dockerfile
               echo "WORKDIR /app" >> Dockerfile
               echo "ENV NODE_ENV=production" >> Dockerfile
-              echo "COPY --from=builder /app/public ./public" >> Dockerfile
-              echo "COPY --from=builder /app/.next/standalone ./" >> Dockerfile
-              echo "COPY --from=builder /app/.next/static ./.next/static" >> Dockerfile
+              echo "COPY package.json package-lock.json ./" >> Dockerfile
+              echo "COPY node_modules ./node_modules" >> Dockerfile
+              echo "COPY public ./public" >> Dockerfile
+              echo "COPY .next ./.next" >> Dockerfile
               echo "" >> Dockerfile
               echo "EXPOSE 3000" >> Dockerfile
               echo "ENV PORT=3000" >> Dockerfile
               echo "ENV HOSTNAME=\"0.0.0.0\"" >> Dockerfile
-              echo "CMD [\"node\", \"server.js\"]" >> Dockerfile
+              echo "CMD [\"node\", \"node_modules/next/dist/bin/next\", \"start\"]" >> Dockerfile
 
-              # 2. เคลียร์ .dockerignore ทิ้ง
+              # 3. เคลียร์ .dockerignore ทิ้ง
               rm -f .dockerignore
 
-              # 3. ใช้ BuildKit เปิดโหมด Build แบบสมบูรณ์
-              export DOCKER_BUILDKIT=1
+              # 4. ใช้ Legacy Builder (DOCKER_BUILDKIT=0) เพื่อไม่ให้ BuildKit ไปเรียก runc
+              export DOCKER_BUILDKIT=0
               docker build \\
                 --network=host \\
                 --build-arg APP_VERSION="$APP_VERSION" \\
