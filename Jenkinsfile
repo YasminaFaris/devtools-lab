@@ -63,40 +63,13 @@ stage('Build') {
               cd /root/lab3-work/DevTools/04_Jenkins/001_Jenikin/003_LAB_Docker_Build_Push/catfood-shop
               COMMIT=$(git rev-parse --short HEAD)
               
-              # 1. ติดตั้ง dependencies ข้างนอกเพื่อเลี่ยง runc
+              # 1. ติดตั้ง dependencies บนโฮสต์ข้างนอกก่อน
               npm ci --no-audit --no-fund
               
-              # 2. เขียนทับ Dockerfile ชั่วคราวให้ก๊อปปี้ node_modules ที่ติดตั้งแล้ว
-              cat << 'DOCKERFILE_EOF' > Dockerfile
-              FROM node:22-alpine
-              WORKDIR /app
-              ENV NEXT_TELEMETRY_DISABLED=1
-
-              COPY package.json package-lock.json ./
-              COPY node_modules ./node_modules
-
-              COPY . .
-              RUN npm run build && rm -rf .next/cache
-
-              ENV NODE_ENV=production \\
-                  PORT=3000
-
-              ARG APP_VERSION=dev
-              ARG BUILD_NUMBER=local
-              ARG GIT_COMMIT=none
-              ARG BUILD_TIME=unknown
-              ENV APP_VERSION=$APP_VERSION \\
-                  BUILD_NUMBER=$BUILD_NUMBER \\
-                  GIT_COMMIT=$GIT_COMMIT \\
-                  BUILD_TIME=$BUILD_TIME
-
-              EXPOSE 3000
-              HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --start-interval=1s --retries=3 \\
-                CMD wget -qO- http://127.0.0.1:3000/api/health || exit 1
-              CMD ["npm", "start"]
-              DOCKERFILE_EOF
-
-              # 3. สั่งรัน docker build จริงๆ ตรงนี้
+              # 2. ใช้ sed เปลี่ยนบรรทัด RUN npm ci เป็น COPY node_modules แทน (เลี่ยงปัญหา runc)
+              sed -i '/RUN npm ci/c\\COPY node_modules ./node_modules' Dockerfile
+              
+              # 3. รัน docker build แบบปิด BuildKit
               export DOCKER_BUILDKIT=0
               docker build \\
                 --build-arg APP_VERSION="$APP_VERSION" \\
