@@ -66,7 +66,7 @@ stage('Build') {
               # 1. ติดตั้ง dependencies ข้างนอกเพื่อเลี่ยง runc
               npm ci --no-audit --no-fund
               
-              # 2. เขียนทับ Dockerfile ชั่วคราวให้ก๊อปปี้ node_modules ที่ติดตั้งแล้วแทนการ RUN npm ci ข้างใน
+              # 2. เขียนทับ Dockerfile ชั่วคราวให้ก๊อปปี้ node_modules ที่ติดตั้งแล้ว
               cat << 'DOCKERFILE_EOF' > Dockerfile
               FROM node:22-alpine
               WORKDIR /app
@@ -85,10 +85,10 @@ stage('Build') {
               ARG BUILD_NUMBER=local
               ARG GIT_COMMIT=none
               ARG BUILD_TIME=unknown
-              ENV APP_VERSION=\$APP_VERSION \\
-                  BUILD_NUMBER=\$BUILD_NUMBER \\
-                  GIT_COMMIT=\$GIT_COMMIT \\
-                  BUILD_TIME=\$BUILD_TIME
+              ENV APP_VERSION=$APP_VERSION \\
+                  BUILD_NUMBER=$BUILD_NUMBER \\
+                  GIT_COMMIT=$GIT_COMMIT \\
+                  BUILD_TIME=$BUILD_TIME
 
               EXPOSE 3000
               HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --start-interval=1s --retries=3 \\
@@ -96,7 +96,7 @@ stage('Build') {
               CMD ["npm", "start"]
               DOCKERFILE_EOF
 
-              # 3. รัน docker build แบบปิด BuildKit
+              # 3. สั่งรัน docker build จริงๆ ตรงนี้
               export DOCKER_BUILDKIT=0
               docker build \\
                 --build-arg APP_VERSION="$APP_VERSION" \\
