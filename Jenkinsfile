@@ -63,33 +63,32 @@ stage('Build') {
               cd /root/lab3-work/DevTools/04_Jenkins/001_Jenikin/003_LAB_Docker_Build_Push/catfood-shop
               COMMIT=$(git rev-parse --short HEAD)
               
-              # 1. เขียนทับ Dockerfile ด้วย Multi-stage สุดสตรีมมิ่ง (ไม่ต้องใช้ RUN ซ้อนใต้รันไทม์เก่า)
-              cat << 'DOCKER_EOF' > Dockerfile
-              FROM node:22-alpine AS builder
-              WORKDIR /app
-              COPY package.json package-lock.json ./
-              RUN npm ci --no-audit --no-fund
-              COPY . .
-              RUN npm run build
+              # 1. สร้าง Dockerfile ด้วย echo ทีละบรรทัด (ตัดปัญหา Heredoc ตีกันพัง)
+              rm -f Dockerfile
+              echo "FROM node:22-alpine AS builder" > Dockerfile
+              echo "WORKDIR /app" >> Dockerfile
+              echo "COPY package.json package-lock.json ./" >> Dockerfile
+              echo "RUN npm ci --no-audit --no-fund" >> Dockerfile
+              echo "COPY . ." >> Dockerfile
+              echo "RUN npm run build" >> Dockerfile
+              echo "" >> Dockerfile
+              echo "FROM node:22-alpine AS runner" >> Dockerfile
+              echo "WORKDIR /app" >> Dockerfile
+              echo "ENV NODE_ENV=production" >> Dockerfile
+              echo "COPY --from=builder /app/public ./public" >> Dockerfile
+              echo "COPY --from=builder /app/.next/standalone ./" >> Dockerfile
+              echo "COPY --from=builder /app/.next/static ./.next/static" >> Dockerfile
+              echo "COPY --from=builder /app/node_modules ./node_modules" >> Dockerfile
+              echo "" >> Dockerfile
+              echo "EXPOSE 3000" >> Dockerfile
+              echo "ENV PORT=3000" >> Dockerfile
+              echo "ENV HOSTNAME=\"0.0.0.0\"" >> Dockerfile
+              echo "CMD [\"node\", \"server.js\"]" >> Dockerfile
 
-              FROM node:22-alpine AS runner
-              WORKDIR /app
-              ENV NODE_ENV=production
-              COPY --from=builder /app/public ./public
-              COPY --from=builder /app/.next/standalone ./
-              COPY --from=builder /app/.next/static ./.next/static
-              COPY --from=builder /app/node_modules ./node_modules
-              
-              EXPOSE 3000
-              ENV PORT=3000
-              ENV HOSTNAME="0.0.0.0"
-              CMD ["node", "server.js"]
-              DOCKER_EOF
-
-              # 2. ปลดล็อกตัวกรองใน .dockerignore ถ้ามี
+              # 2. เคลียร์ .dockerignore เพื่อไม่ให้กรองไฟล์
               echo "" > .dockerignore
 
-              # 3. สั่ง Build ปกติ (คราวนี้ BuildKit จะเคลียร์ตัวเองได้เพราะโค้ดสะอาด)
+              # 3. รัน docker build
               export DOCKER_BUILDKIT=1
               docker build \\
                 --network=host \\
