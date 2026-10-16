@@ -63,13 +63,17 @@ pipeline {
             $SSH_DEVTOOLS "IMAGE=$IMAGE APP_VERSION=$APP_VERSION BUILD_NUMBER=$BUILD_NUMBER bash -ex" <<'EOF'
               cd /root/lab3-work/DevTools/04_Jenkins/001_Jenikin/003_LAB_Docker_Build_Push/catfood-shop
               COMMIT=$(git rev-parse --short HEAD)
+              
+              # ปิด BuildKit เพื่อเลี่ยงปัญหา runc ชนกับเนสต์คอนเทนเนอร์
+              export DOCKER_BUILDKIT=0
+              
               docker build \
-                --network=host \
                 --build-arg APP_VERSION="$APP_VERSION" \
                 --build-arg BUILD_NUMBER="$BUILD_NUMBER" \
                 --build-arg GIT_COMMIT="$COMMIT" \
                 --build-arg BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
                 -t "$IMAGE" .
+                
               docker image ls "$IMAGE"
             EOF
             '''.stripIndent()
