@@ -27,14 +27,7 @@ pipeline {
             steps {
                 sshagent(credentials: ['devtools-ssh']) {
                     sh '''
-                        $SSH_DEVTOOLS "bash -ex" <<'EOF'
-                            rm -rf /root/lab3-work/DevTools
-                            git clone --depth 1 --filter=blob:none --sparse https://github.com/Tuchsanai/DevTools.git /root/lab3-work/DevTools
-                            cd /root/lab3-work/DevTools
-                            git sparse-checkout set 04_Jenkins/001_Jenikin/003_LAB_Docker_Build_Push/catfood-shop
-                            git log -1 --oneline
-                            ls 04_Jenkins/001_Jenikin/003_LAB_Docker_Build_Push/catfood-shop
-                        EOF
+                        $SSH_DEVTOOLS "rm -rf /root/lab3-work/DevTools && git clone --depth 1 --filter=blob:none --sparse https://github.com/Tuchsanai/DevTools.git /root/lab3-work/DevTools && cd /root/lab3-work/DevTools && git sparse-checkout set 04_Jenkins/001_Jenikin/003_LAB_Docker_Build_Push/catfood-shop && git log -1 --oneline && ls 04_Jenkins/001_Jenikin/003_LAB_Docker_Build_Push/catfood-shop"
                     '''.stripIndent()
                 }
             }
