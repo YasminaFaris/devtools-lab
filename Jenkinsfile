@@ -15,12 +15,9 @@ pipeline {
     stages {
         stage('Connect') {
             steps {
-                script {
-                    echo "Connecting to devtools host..."
-                }
                 sshagent(credentials: ['devtools-ssh']) {
                     sh '''
-                        $SSH_DEVTOOLS hostname && whoami && docker --version && git --version
+                        $SSH_DEVTOOLS "hostname && whoami && docker --version && git --version"
                     '''.stripIndent()
                 }
             }
@@ -141,16 +138,15 @@ pipeline {
             }
         }
     }
-}
 
-  post {
-    success {
-      echo "เปิดร้านได้ที่ http://localhost:3000 (v${params.APP_VERSION} build #${env.BUILD_NUMBER})"
+    post {
+        success {
+            echo "เปิดร้านได้ที่ http://localhost:3000 (v1.0.0 build #${env.BUILD_NUMBER})"
+        }
+        always {
+            sshagent(credentials: ['devtools-ssh']) {
+                sh '$SSH_DEVTOOLS "rm -rf /root/lab3-work/docker-auth" || true'
+            }
+        }
     }
-    always {
-      // ลบไฟล์ login Docker Hub บน devtools เสมอ ทั้งตอนสำเร็จและตอน build ล้มกลางทาง
-      sshagent(credentials: ['devtools-ssh']) {
-        sh '$SSH_DEVTOOLS "rm -rf $AUTH_DIR" || true'
-      }
-    }
-  }
+}
