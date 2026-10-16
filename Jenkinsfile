@@ -27,7 +27,7 @@ pipeline {
             steps {
                 sshagent(credentials: ['devtools-ssh']) {
                     sh '''
-                        $SSH_DEVTOOLS bash -ex <<'EOF'
+                        $SSH_DEVTOOLS "bash -ex" <<'EOF'
                             rm -rf /root/lab3-work/DevTools
                             git clone --depth 1 --filter=blob:none --sparse https://github.com/Tuchsanai/DevTools.git /root/lab3-work/DevTools
                             cd /root/lab3-work/DevTools
