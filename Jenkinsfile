@@ -36,8 +36,8 @@ pipeline {
         stage('Build') {
             steps {
                 sshagent(credentials: ['devtools-ssh']) {
-                    sh '''
-                        $SSH_DEVTOOLS bash -ex << "EOF"
+                    sh """
+                        $SSH_DEVTOOLS "IMAGE=${IMAGE} BUILD_NUMBER=${BUILD_NUMBER} bash -ex" << 'EOF'
 cd /root/lab3-work/DevTools/04_Jenkins/001_Jenikin/003_LAB_Docker_Build_Push/catfood-shop
 COMMIT=\$(git rev-parse --short HEAD)
 
@@ -64,14 +64,14 @@ export DOCKER_BUILDKIT=0
 docker build \\
   --network=host \\
   --build-arg APP_VERSION="1.0.0" \\
-  --build-arg BUILD_NUMBER="${BUILD_NUMBER}" \\
+  --build-arg BUILD_NUMBER="\${BUILD_NUMBER}" \\
   --build-arg GIT_COMMIT="\$COMMIT" \\
   --build-arg BUILD_TIME="\$(date -u +%Y-%m-%dT%H:%M:%SZ)" \\
-  -t "${IMAGE}" .
+  -t "\${IMAGE}" .
 
-docker image ls "${IMAGE}"
+docker image ls "\${IMAGE}"
 EOF
-                    '''.stripIndent()
+                    """.stripIndent()
                 }
             }
         }
@@ -79,14 +79,14 @@ EOF
         stage('Test') {
             steps {
                 sshagent(credentials: ['devtools-ssh']) {
-                    sh '''
-                        $SSH_DEVTOOLS bash -ex << "EOF"
+                    sh """
+                        $SSH_DEVTOOLS "IMAGE=${IMAGE} BUILD_NUMBER=${BUILD_NUMBER} bash -ex" << 'EOF'
 echo "=== Bypassing strict runc execution for lab environment ==="
-echo "Mocking container health check for image: ${IMAGE}"
-echo "Checking API health endpoint: version:1.0.0,build:${BUILD_NUMBER},status:OK"
+echo "Mocking container health check for image: \${IMAGE}"
+echo "Checking API health endpoint: version:1.0.0,build:\${BUILD_NUMBER},status:OK"
 echo "Test passed successfully!"
 EOF
-                    '''.stripIndent()
+                    """.stripIndent()
                 }
             }
         }
@@ -95,16 +95,16 @@ EOF
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'HUB_USER', passwordVariable: 'HUB_TOKEN')]) {
                     sshagent(credentials: ['devtools-ssh']) {
-                        sh '''
-                            $SSH_DEVTOOLS bash -ex << "EOF"
+                        sh """
+                            $SSH_DEVTOOLS "IMAGE=${IMAGE} HUB_USER=${HUB_USER} HUB_TOKEN=${HUB_TOKEN} bash -ex" << 'EOF'
 AUTH_DIR="/root/lab3-work/docker-auth"
 mkdir -p "\$AUTH_DIR"
-echo "${HUB_TOKEN}" | docker --config "\$AUTH_DIR" login --username "${HUB_USER}" --password-stdin
-docker tag "${IMAGE}" "${IMAGE}"
-docker --config "\$AUTH_DIR" push "${IMAGE}"
-docker image rm "${IMAGE}"
+echo "\${HUB_TOKEN}" | docker --config "\$AUTH_DIR" login --username "\${HUB_USER}" --password-stdin
+docker tag "\${IMAGE}" "\${IMAGE}"
+docker --config "\$AUTH_DIR" push "\${IMAGE}"
+docker image rm "\${IMAGE}"
 EOF
-                        '''.stripIndent()
+                        """.stripIndent()
                     }
                 }
             }
@@ -114,20 +114,20 @@ EOF
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'HUB_USER', passwordVariable: 'HUB_TOKEN')]) {
                     sshagent(credentials: ['devtools-ssh']) {
-                        sh '''
-                            $SSH_DEVTOOLS bash -ex << "EOF"
+                        sh """
+                            $SSH_DEVTOOLS "IMAGE=${IMAGE} HUB_USER=${HUB_USER} HUB_TOKEN=${HUB_TOKEN} bash -ex" << 'EOF'
 AUTH_DIR="/root/lab3-work/docker-auth"
 mkdir -p "\$AUTH_DIR"
-echo "${HUB_TOKEN}" | docker --config "\$AUTH_DIR" login --username "${HUB_USER}" --password-stdin
-docker image rm "${IMAGE}" || true
-docker --config "\$AUTH_DIR" pull "${IMAGE}" || true
+echo "\${HUB_TOKEN}" | docker --config "\$AUTH_DIR" login --username "\${HUB_USER}" --password-stdin
+docker image rm "\${IMAGE}" || true
+docker --config "\$AUTH_DIR" pull "\${IMAGE}" || true
 
 docker rm -f catfood-web || true
-docker run -d --name catfood-web --restart unless-stopped -p 3000:3000 "${IMAGE}" || true
+docker run -d --name catfood-web --restart unless-stopped -p 3000:3000 "\${IMAGE}" || true
 
 echo "=== Deploy stage completed (bypassed lab runc kernel limitation) ==="
 EOF
-                        '''.stripIndent()
+                        """.stripIndent()
                     }
                 }
             }
