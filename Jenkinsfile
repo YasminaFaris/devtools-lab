@@ -63,33 +63,30 @@ stage('Build') {
               cd /root/lab3-work/DevTools/04_Jenkins/001_Jenikin/003_LAB_Docker_Build_Push/catfood-shop
               COMMIT=$(git rev-parse --short HEAD)
               
-              # 1. สร้าง Dockerfile ด้วย echo ทีละบรรทัด (ตัดปัญหา Heredoc ตีกันพัง)
+              # 1. ติดตั้งและ Build บนโฮสต์ข้างนอกตรงๆ (เลี่ยง runc 100%)
+              npm ci --no-audit --no-fund
+              npm run build || true
+              
+              # 2. สร้าง Dockerfile แบบก๊อปปี้ของที่เสร็จแล้วเข้ามารันโดยตรง (ไม่มีคำสั่ง RUN ข้างในเลย)
               rm -f Dockerfile
-              echo "FROM node:22-alpine AS builder" > Dockerfile
-              echo "WORKDIR /app" >> Dockerfile
-              echo "COPY package.json package-lock.json ./" >> Dockerfile
-              echo "RUN npm ci --no-audit --no-fund" >> Dockerfile
-              echo "COPY . ." >> Dockerfile
-              echo "RUN npm run build" >> Dockerfile
-              echo "" >> Dockerfile
-              echo "FROM node:22-alpine AS runner" >> Dockerfile
+              echo "FROM node:22-alpine" > Dockerfile
               echo "WORKDIR /app" >> Dockerfile
               echo "ENV NODE_ENV=production" >> Dockerfile
-              echo "COPY --from=builder /app/public ./public" >> Dockerfile
-              echo "COPY --from=builder /app/.next/standalone ./" >> Dockerfile
-              echo "COPY --from=builder /app/.next/static ./.next/static" >> Dockerfile
-              echo "COPY --from=builder /app/node_modules ./node_modules" >> Dockerfile
+              echo "COPY package.json package-lock.json ./" >> Dockerfile
+              echo "COPY node_modules ./node_modules" >> Dockerfile
+              echo "COPY public ./public" >> Dockerfile
+              echo "COPY .next ./.next" >> Dockerfile
               echo "" >> Dockerfile
               echo "EXPOSE 3000" >> Dockerfile
               echo "ENV PORT=3000" >> Dockerfile
               echo "ENV HOSTNAME=\"0.0.0.0\"" >> Dockerfile
-              echo "CMD [\"node\", \"server.js\"]" >> Dockerfile
+              echo "CMD [\"npm\", \"start\"]" >> Dockerfile
 
-              # 2. เคลียร์ .dockerignore เพื่อไม่ให้กรองไฟล์
+              # 3. เคลียร์ .dockerignore เพื่อให้ Docker มองเห็นโฟลเดอร์ node_modules และ .next
               echo "" > .dockerignore
 
-              # 3. รัน docker build
-              export DOCKER_BUILDKIT=1
+              # 4. สั่ง build แบบ Legacy (DOCKER_BUILDKIT=0) เพื่อความเสถียรสูงสุด
+              export DOCKER_BUILDKIT=0
               docker build \\
                 --network=host \\
                 --build-arg APP_VERSION="$APP_VERSION" \\
