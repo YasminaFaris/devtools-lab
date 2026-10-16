@@ -63,13 +63,16 @@ stage('Build') {
               cd /root/lab3-work/DevTools/04_Jenkins/001_Jenikin/003_LAB_Docker_Build_Push/catfood-shop
               COMMIT=$(git rev-parse --short HEAD)
               
-              # 1. ติดตั้ง dependencies บนโฮสต์ข้างนอกก่อน
+              # 1. ติดตั้ง dependencies บนโฮสต์ข้างนอก
               npm ci --no-audit --no-fund
               
-              # 2. ใช้ sed เปลี่ยนบรรทัด RUN npm ci เป็น COPY node_modules แทน (เลี่ยงปัญหา runc)
+              # 2. ปลดล็อก node_modules ใน .dockerignore ไม่ให้โดนกรองออกตอน build context
+              sed -i '/node_modules/d' .dockerignore || true
+              
+              # 3. แก้ Dockerfile ให้ก๊อปปี้ node_modules เข้าไปตรงๆ
               sed -i '/RUN npm ci/c\\COPY node_modules ./node_modules' Dockerfile
               
-              # 3. รัน docker build แบบปิด BuildKit
+              # 4. รัน docker build แบบปิด BuildKit
               export DOCKER_BUILDKIT=0
               docker build \\
                 --build-arg APP_VERSION="$APP_VERSION" \\
