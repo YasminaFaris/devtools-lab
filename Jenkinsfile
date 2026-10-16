@@ -64,6 +64,7 @@ pipeline {
               cd /root/lab3-work/DevTools/04_Jenkins/001_Jenikin/003_LAB_Docker_Build_Push/catfood-shop
               COMMIT=$(git rev-parse --short HEAD)
               docker build \
+                --network=host \
                 --build-arg APP_VERSION="$APP_VERSION" \
                 --build-arg BUILD_NUMBER="$BUILD_NUMBER" \
                 --build-arg GIT_COMMIT="$COMMIT" \
