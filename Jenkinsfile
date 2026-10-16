@@ -63,11 +63,11 @@ stage('Build') {
               cd /root/lab3-work/DevTools/04_Jenkins/001_Jenikin/003_LAB_Docker_Build_Push/catfood-shop
               COMMIT=$(git rev-parse --short HEAD)
               
-              # 1. ติดตั้งและ Build บนโฮสต์ข้างนอกตรงๆ (เลี่ยง runc 100%)
+              # 1. ติดตั้งและ Build บนโฮสต์ข้างนอก
               npm ci --no-audit --no-fund
               npm run build || true
               
-              # 2. สร้าง Dockerfile แบบก๊อปปี้ของที่เสร็จแล้วเข้ามารันโดยตรง (ไม่มีคำสั่ง RUN ข้างในเลย)
+              # 2. เขียน Dockerfile ใหม่โดยให้ CMD รันผ่าน node node_modules/.bin/next หรือ node server.js ตรงๆ
               rm -f Dockerfile
               echo "FROM node:22-alpine" > Dockerfile
               echo "WORKDIR /app" >> Dockerfile
@@ -80,12 +80,11 @@ stage('Build') {
               echo "EXPOSE 3000" >> Dockerfile
               echo "ENV PORT=3000" >> Dockerfile
               echo "ENV HOSTNAME=\"0.0.0.0\"" >> Dockerfile
-              echo "CMD [\"npm\", \"start\"]" >> Dockerfile
+              # ใช้ node รัน next โดยตรง เลี่ยงการใช้ npm start ที่ทริกเกอร์ runc
+              echo "CMD [\"node\", \"node_modules/next/dist/bin/next\", \"start\"]" >> Dockerfile
 
-              # 3. เคลียร์ .dockerignore เพื่อให้ Docker มองเห็นโฟลเดอร์ node_modules และ .next
               echo "" > .dockerignore
 
-              # 4. สั่ง build แบบ Legacy (DOCKER_BUILDKIT=0) เพื่อความเสถียรสูงสุด
               export DOCKER_BUILDKIT=0
               docker build \\
                 --network=host \\
