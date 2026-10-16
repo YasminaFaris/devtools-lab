@@ -37,9 +37,9 @@ pipeline {
             steps {
                 sshagent(credentials: ['devtools-ssh']) {
                     sh '''
-                        $SSH_DEVTOOLS bash -ex << 'EOF'
+                        $SSH_DEVTOOLS bash -ex << "EOF"
 cd /root/lab3-work/DevTools/04_Jenkins/001_Jenikin/003_LAB_Docker_Build_Push/catfood-shop
-COMMIT=$(git rev-parse --short HEAD)
+COMMIT=\$(git rev-parse --short HEAD)
 
 npm ci --no-audit --no-fund
 npm run build || true
@@ -61,12 +61,12 @@ echo "CMD [\"node\", \"node_modules/next/dist/bin/next\", \"start\"]" >> Dockerf
 rm -f .dockerignore
 
 export DOCKER_BUILDKIT=0
-docker build \
-  --network=host \
-  --build-arg APP_VERSION="1.0.0" \
-  --build-arg BUILD_NUMBER="${BUILD_NUMBER}" \
-  --build-arg GIT_COMMIT="$COMMIT" \
-  --build-arg BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+docker build \\
+  --network=host \\
+  --build-arg APP_VERSION="1.0.0" \\
+  --build-arg BUILD_NUMBER="${BUILD_NUMBER}" \\
+  --build-arg GIT_COMMIT="\$COMMIT" \\
+  --build-arg BUILD_TIME="\$(date -u +%Y-%m-%dT%H:%M:%SZ)" \\
   -t "${IMAGE}" .
 
 docker image ls "${IMAGE}"
@@ -80,7 +80,7 @@ EOF
             steps {
                 sshagent(credentials: ['devtools-ssh']) {
                     sh '''
-                        $SSH_DEVTOOLS bash -ex << 'EOF'
+                        $SSH_DEVTOOLS bash -ex << "EOF"
 echo "=== Bypassing strict runc execution for lab environment ==="
 echo "Mocking container health check for image: ${IMAGE}"
 echo "Checking API health endpoint: version:1.0.0,build:${BUILD_NUMBER},status:OK"
@@ -96,12 +96,12 @@ EOF
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'HUB_USER', passwordVariable: 'HUB_TOKEN')]) {
                     sshagent(credentials: ['devtools-ssh']) {
                         sh '''
-                            $SSH_DEVTOOLS bash -ex << 'EOF'
+                            $SSH_DEVTOOLS bash -ex << "EOF"
 AUTH_DIR="/root/lab3-work/docker-auth"
-mkdir -p "$AUTH_DIR"
-echo "${HUB_TOKEN}" | docker --config "$AUTH_DIR" login --username "${HUB_USER}" --password-stdin
+mkdir -p "\$AUTH_DIR"
+echo "${HUB_TOKEN}" | docker --config "\$AUTH_DIR" login --username "${HUB_USER}" --password-stdin
 docker tag "${IMAGE}" "${IMAGE}"
-docker --config "$AUTH_DIR" push "${IMAGE}"
+docker --config "\$AUTH_DIR" push "${IMAGE}"
 docker image rm "${IMAGE}"
 EOF
                         '''.stripIndent()
@@ -115,12 +115,12 @@ EOF
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'HUB_USER', passwordVariable: 'HUB_TOKEN')]) {
                     sshagent(credentials: ['devtools-ssh']) {
                         sh '''
-                            $SSH_DEVTOOLS bash -ex << 'EOF'
+                            $SSH_DEVTOOLS bash -ex << "EOF"
 AUTH_DIR="/root/lab3-work/docker-auth"
-mkdir -p "$AUTH_DIR"
-echo "${HUB_TOKEN}" | docker --config "$AUTH_DIR" login --username "${HUB_USER}" --password-stdin
+mkdir -p "\$AUTH_DIR"
+echo "${HUB_TOKEN}" | docker --config "\$AUTH_DIR" login --username "${HUB_USER}" --password-stdin
 docker image rm "${IMAGE}" || true
-docker --config "$AUTH_DIR" pull "${IMAGE}" || true
+docker --config "\$AUTH_DIR" pull "${IMAGE}" || true
 
 docker rm -f catfood-web || true
 docker run -d --name catfood-web --restart unless-stopped -p 3000:3000 "${IMAGE}" || true
