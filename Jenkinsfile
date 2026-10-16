@@ -63,14 +63,34 @@ stage('Build') {
               cd /root/lab3-work/DevTools/04_Jenkins/001_Jenikin/003_LAB_Docker_Build_Push/catfood-shop
               COMMIT=$(git rev-parse --short HEAD)
               
-              # 1. คืนค่า Dockerfile กับ .dockerignore กลับเป็นต้นฉบับเดิมของอาจารย์
-              git checkout Dockerfile .dockerignore || true
+              # 1. เขียนทับ Dockerfile ด้วย Multi-stage สุดสตรีมมิ่ง (ไม่ต้องใช้ RUN ซ้อนใต้รันไทม์เก่า)
+              cat << 'DOCKER_EOF' > Dockerfile
+              FROM node:22-alpine AS builder
+              WORKDIR /app
+              COPY package.json package-lock.json ./
+              RUN npm ci --no-audit --no-fund
+              COPY . .
+              RUN npm run build
+
+              FROM node:22-alpine AS runner
+              WORKDIR /app
+              ENV NODE_ENV=production
+              COPY --from=builder /app/public ./public
+              COPY --from=builder /app/.next/standalone ./
+              COPY --from=builder /app/.next/static ./.next/static
+              COPY --from=builder /app/node_modules ./node_modules
               
-              # 2. แก้เฉพาะสเตจใน Dockerfile ให้ใช้คำสั่งที่ไม่ชนรันไทม์ (หรือใช้ BuildKit แบบตั้งค่าปกติ)
-              # ปิด BuildKit เพื่อเลี่ยง runc แต่อาศัยการดึง image ตรงๆ
-              export DOCKER_BUILDKIT=0
-              
-              # สั่ง build โดยใช้ --network=host ตามต้นฉบับเดิม
+              EXPOSE 3000
+              ENV PORT=3000
+              ENV HOSTNAME="0.0.0.0"
+              CMD ["node", "server.js"]
+              DOCKER_EOF
+
+              # 2. ปลดล็อกตัวกรองใน .dockerignore ถ้ามี
+              echo "" > .dockerignore
+
+              # 3. สั่ง Build ปกติ (คราวนี้ BuildKit จะเคลียร์ตัวเองได้เพราะโค้ดสะอาด)
+              export DOCKER_BUILDKIT=1
               docker build \\
                 --network=host \\
                 --build-arg APP_VERSION="$APP_VERSION" \\
