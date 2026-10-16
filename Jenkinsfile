@@ -63,46 +63,16 @@ stage('Build') {
               cd /root/lab3-work/DevTools/04_Jenkins/001_Jenikin/003_LAB_Docker_Build_Push/catfood-shop
               COMMIT=$(git rev-parse --short HEAD)
               
-              # 1. ติดตั้ง dependencies และ build บนโฮสต์ข้างนอก
-              npm ci --no-audit --no-fund
-              npm run build
+              # 1. คืนค่า Dockerfile กับ .dockerignore กลับเป็นต้นฉบับเดิมของอาจารย์
+              git checkout Dockerfile .dockerignore || true
               
-              # 2. ปลดล็อกโฟลเดอร์ใน .dockerignore
-              sed -i '/node_modules/d' .dockerignore || true
-              sed -i '/.next/d' .dockerignore || true
-              
-              # 3. เขียนทับ Dockerfile ใหม่แบบไม่ต้องใช้คำสั่ง RUN ด้านในเลย (ปลอดภัยจาก runc 100%)
-              cat << 'DOCKERFILE_EOF' > Dockerfile
-              FROM node:22-alpine
-              WORKDIR /app
-              ENV NEXT_TELEMETRY_DISABLED=1
-
-              COPY package.json package-lock.json ./
-              COPY node_modules ./node_modules
-              COPY .next ./.next
-              COPY public ./public
-
-              ENV NODE_ENV=production \\
-                  PORT=3000
-
-              ARG APP_VERSION=dev
-              ARG BUILD_NUMBER=local
-              ARG GIT_COMMIT=none
-              ARG BUILD_TIME=unknown
-              ENV APP_VERSION=\$APP_VERSION \\
-                  BUILD_NUMBER=\$BUILD_NUMBER \\
-                  GIT_COMMIT=\$GIT_COMMIT \\
-                  BUILD_TIME=\$BUILD_TIME
-
-              EXPOSE 3000
-              HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --start-interval=1s --retries=3 \\
-                CMD wget -qO- http://127.0.0.1:3000/api/health || exit 1
-              CMD ["npm", "start"]
-              DOCKERFILE_EOF
-
-              # 4. รัน docker build แบบ Legacy (DOCKER_BUILDKIT=0)
+              # 2. แก้เฉพาะสเตจใน Dockerfile ให้ใช้คำสั่งที่ไม่ชนรันไทม์ (หรือใช้ BuildKit แบบตั้งค่าปกติ)
+              # ปิด BuildKit เพื่อเลี่ยง runc แต่อาศัยการดึง image ตรงๆ
               export DOCKER_BUILDKIT=0
+              
+              # สั่ง build โดยใช้ --network=host ตามต้นฉบับเดิม
               docker build \\
+                --network=host \\
                 --build-arg APP_VERSION="$APP_VERSION" \\
                 --build-arg BUILD_NUMBER="$BUILD_NUMBER" \\
                 --build-arg GIT_COMMIT="$COMMIT" \\
