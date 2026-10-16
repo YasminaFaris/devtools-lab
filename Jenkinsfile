@@ -64,9 +64,11 @@ pipeline {
               cd /root/lab3-work/DevTools/04_Jenkins/001_Jenikin/003_LAB_Docker_Build_Push/catfood-shop
               COMMIT=$(git rev-parse --short HEAD)
               
-              # ปิด BuildKit เพื่อเลี่ยงปัญหา runc ชนกับเนสต์คอนเทนเนอร์
-              export DOCKER_BUILDKIT=0
+              # 1. ติดตั้ง dependencies บนโฮสต์ข้างนอกก่อน เพื่อเลี่ยงปัญหา runc ข้างใน docker build
+              npm ci --no-audit --no-fund
               
+              # 2. รัน docker build แบบปิด BuildKit
+              export DOCKER_BUILDKIT=0
               docker build \
                 --build-arg APP_VERSION="$APP_VERSION" \
                 --build-arg BUILD_NUMBER="$BUILD_NUMBER" \
