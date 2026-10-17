@@ -136,7 +136,7 @@ EOF
 
     post {
         success {
-            echo "เปิดร้านได้ที่ http://localhost:3000 (v1.0.0 build #${env.BUILD_NUMBER})"
+            echo "เปิดร้านได้ที่ http://localhost:3000 (${params.APP_VERSION} build #${env.BUILD_NUMBER})"
         }
         always {
             sshagent(credentials: ['devtools-ssh']) {
