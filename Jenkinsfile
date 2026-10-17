@@ -7,7 +7,7 @@ pipeline {
 
     environment {
         IMAGE = "yasminanasser/catfood-shop:lab3-${env.BUILD_NUMBER}"
-        APP_VERSION = "1.0.0"
+        APP_VERSION = "${params.APP_VERSION}"
         BUILD_NUMBER = "${env.BUILD_NUMBER}"
         SSH_DEVTOOLS = "ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes root@devtools"
     }
